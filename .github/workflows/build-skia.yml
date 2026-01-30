@@ -1,0 +1,91 @@
+name: Build Skia Static
+
+on:
+  workflow_dispatch:
+    inputs:
+      skia_branch:
+        description: "Skia branch/tag to build"
+        required: true
+        default: "chrome/m144"
+
+jobs:
+  build-skia:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            python3 \
+            curl \
+            build-essential \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libharfbuzz-dev \
+            libicu-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libwebp-dev \
+            zlib1g-dev \
+            libexpat1-dev \
+            libvulkan-dev \
+            ninja-build
+
+      - name: Setup Depot Tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "$PWD/depot_tools" >> $GITHUB_PATH
+
+      - name: Checkout Skia
+        run: |
+          mkdir skia
+          cd skia
+          gclient config --spec 'solutions = [
+            {
+              "name": "skia",
+              "url": "https://skia.googlesource.com/skia.git",
+              "deps_file": "DEPS",
+              "managed": False,
+              "custom_deps": {},
+            },
+          ]'
+          gclient sync --revision skia@${{ inputs.skia_branch }} --no-history --shallow
+
+      - name: Sync Deps
+        working-directory: skia/skia
+        run: |
+          python3 tools/git-sync-deps
+
+      - name: Build Skia
+        working-directory: skia/skia
+        run: |
+          bin/gn gen out/Release --args='is_official_build=true is_debug=false skia_use_vulkan=true skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_zlib=false skia_use_system_icu=false skia_use_system_harfbuzz=false skia_use_system_expat=false extra_cflags_cc=["-USK_HIDE_PATH_EDIT_METHODS"]'
+          ninja -C out/Release
+
+      - name: Prepare Artifacts
+        run: |
+          mkdir -p skia-dist/lib
+          mkdir -p skia-dist/include
+
+          # Copy Libs
+          cp skia/skia/out/Release/*.a skia-dist/lib/
+
+          # Copy Headers
+          cd skia/skia
+          find include -type f -name "*.h" -exec cp --parents {} ../../skia-dist/include/ \;
+          find modules -type f -name "*.h" -exec cp --parents {} ../../skia-dist/include/ \;
+          find src -type f -name "*.h" -exec cp --parents {} ../../skia-dist/include/ \;
+          cd ../..
+
+          # Create Archive
+          tar -czvf skia-linux-vulkan.tar.gz -C skia-dist .
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: skia-linux-vulkan
+          path: skia-linux-vulkan.tar.gz
