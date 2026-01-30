@@ -82,7 +82,8 @@ jobs:
           cd ../..
 
           # Create Archive
-          tar -czvf skia-linux-vulkan.tar.gz -C skia-dist .
+          mv skia-dist skia-linux-vulkan
+          tar -czvf skia-linux-vulkan.tar.gz skia-linux-vulkan
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
