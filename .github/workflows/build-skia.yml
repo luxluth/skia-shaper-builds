@@ -21,6 +21,9 @@ jobs:
             python3 \
             curl \
             build-essential \
+            clang \
+            libc++-dev \
+            libc++abi-dev \
             libfontconfig1-dev \
             libfreetype6-dev \
             libgl1-mesa-dev \
@@ -63,7 +66,7 @@ jobs:
       - name: Build Skia
         working-directory: skia/skia
         run: |
-          bin/gn gen out/Release --args='is_official_build=true is_debug=false skia_use_vulkan=true skia_enable_fontmgr_fontconfig=true skia_use_fontconfig=true skia_use_freetype=true skia_use_system_freetype2=false skia_enable_fontmgr_custom_directory=true skia_enable_fontmgr_custom_embedded=true skia_enable_fontmgr_custom_empty=true skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_zlib=false skia_use_system_icu=false skia_use_system_harfbuzz=false skia_use_system_expat=false extra_cflags_cc=["-stdlib=libc++", "-USK_HIDE_PATH_EDIT_METHODS"] extra_ldflags=["-stdlib=libc++"]'
+          bin/gn gen out/Release --args='is_official_build=true is_debug=false cc="clang" cxx="clang++" skia_use_vulkan=true skia_enable_fontmgr_fontconfig=true skia_use_fontconfig=true skia_use_freetype=true skia_use_system_freetype2=false skia_enable_fontmgr_custom_directory=true skia_enable_fontmgr_custom_embedded=true skia_enable_fontmgr_custom_empty=true skia_use_system_libjpeg_turbo=false skia_use_system_libpng=false skia_use_system_zlib=false skia_use_system_icu=false skia_use_system_harfbuzz=false skia_use_system_expat=false extra_cflags_cc=["-stdlib=libc++", "-USK_HIDE_PATH_EDIT_METHODS"] extra_ldflags=["-stdlib=libc++"]'
           ninja -C out/Release
 
       - name: Prepare Artifacts
